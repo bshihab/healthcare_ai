@@ -4,8 +4,29 @@ from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from pydicom import dcmread
 from dotenv import load_dotenv
+from google.cloud import pubsub_v1
 
 load_dotenv()
+
+
+def publish_message(project_id, topic_id, message):
+    """
+    Publishes a message to a Pub/Sub topic.
+
+    Args:
+        project_id (str): Google Cloud Project ID.
+        topic_id (str): Pub/Sub Topic ID.
+        message (str): Message to publish.
+    """
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(project_id, topic_id)
+    print(f"Publishing to topic path: {topic_path}")
+
+
+    # Publish the message
+    future = publisher.publish(topic_path, message.encode("utf-8"))
+    print(f"Published message to {topic_id}: {message}")
+
 
 def get_sop_instance_uid(dicom_file_path):
     try:
@@ -106,6 +127,8 @@ def delete_dicom_instance(project_id, dataset_id, dicom_store_id, study_instance
         print(f"Failed to delete study. Status code: {response.status_code}, Response: {response.text}")
 
 def upload_dicom_file(project_id, dataset_id, dicom_store_id, dicom_file_path, location="us-central1", overwrite=False):
+    print("Entered upload_dicom_file function")  # Start tracing here
+
     sop_instance_uid, study_instance_uid_local = get_sop_instance_uid(dicom_file_path)
     print(f"Extracted SOPInstanceUID: {sop_instance_uid}, StudyInstanceUID: {study_instance_uid_local}")
 
@@ -114,6 +137,8 @@ def upload_dicom_file(project_id, dataset_id, dicom_store_id, dicom_file_path, l
         return
 
     exists, study_instance_uid_remote = dicom_file_exists(project_id, dataset_id, dicom_store_id, sop_instance_uid, location)
+    print(f"DICOM file exists check: {exists}")
+
 
     if exists:
         print(f"Conflict detected: SOP Instance UID {sop_instance_uid} already exists in the DICOM store (StudyInstanceUID: {study_instance_uid_remote}).")
@@ -151,6 +176,13 @@ def upload_dicom_file(project_id, dataset_id, dicom_store_id, dicom_file_path, l
 
         if response.status_code == 200:
             print("DICOM file uploaded successfully.")
+            message = f"New DICOM file uploaded: SOPInstanceUID={sop_instance_uid}, StudyInstanceUID={study_instance_uid_local}"
+
+            print("About to publish message")
+            publish_message(project_id, os.getenv("PUBSUB_TOPIC_ID"), message)
+            print("Message published")
+
+
         elif response.status_code == 409:
             print(f"Failed to upload DICOM file due to conflict (Status code: 409). This should have been handled by the overwrite logic.")
             print("Response:", response.text)

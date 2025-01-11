@@ -1,14 +1,18 @@
 import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
 
-# Project and resource details
-PROJECT_ID = "testdicom-445700"
-DATASET_ID = "xray-dataset"
-DICOM_STORE_ID = "xray-dicom-store"
-LOCATION = "us-central1"
-SERVICE_ACCOUNT_KEY_PATH = "/Users/bilalshihab/dev/healthcare_ai/keys/testdicom-445700-76e08775608e.json"
-PUBSUB_TOPIC_ID = "dicom-upload-topic"
+# Load environment variables from .env file
+load_dotenv()
+
+# Project and resource details from environment variables
+PROJECT_ID = os.getenv("PROJECT_ID")
+DATASET_ID = os.getenv("DATASET_ID")
+DICOM_STORE_ID = os.getenv("DICOM_STORE_ID")
+LOCATION = os.getenv("LOCATION")
+SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH")
+PUBSUB_TOPIC_ID = os.getenv("PUBSUB_TOPIC_ID")
 
 # Set GOOGLE_APPLICATION_CREDENTIALS environment variable
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_KEY_PATH
